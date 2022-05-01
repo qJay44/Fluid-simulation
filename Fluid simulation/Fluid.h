@@ -14,9 +14,12 @@ public:
 	void addDensity(const int x, const int y, const float amount);
 	void addVelocity(const int x, const int y, const float amountX, const float amountY);
 	void fadeDensity();
-	const float getDensity(const int x, const int y) const;
 	void changeColorMode();
-	inline const int getColorMode() const;
+
+	const float getDensity(const int x, const int y) const;
+	const int getColorMode() const;
+	const float getVelX(const int x, const int y) const;
+	const float getVelY(const int x, const int y) const;
 
 private:
 	const unsigned int size = N;

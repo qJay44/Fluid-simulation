@@ -64,12 +64,6 @@ void Fluid::fadeDensity()
 		this->density[i] = this->density[i] - 0.05f < 0 ? 0 : this->density[i] - 0.05f;
 	}
 }
-
-const float Fluid::getDensity(const int x, const int y) const
-{
-	return this->density[IX(x, y)];
-}
-
 void Fluid::fillArr(float arr[], const unsigned int size)
 {
 	for (size_t i = 0; i < size; i++)
@@ -78,9 +72,16 @@ void Fluid::fillArr(float arr[], const unsigned int size)
 	}
 }
 
+const float Fluid::getDensity(const int x, const int y) const
+{
+	return this->density[IX(x, y)];
+}
+
 void Fluid::changeColorMode()
 {
 	this->colorMode == 2 ? this->colorMode = 0 : this->colorMode++;
 }
 
-inline const int Fluid::getColorMode() const { return this->colorMode; }
+const int Fluid::getColorMode() const { return this->colorMode; }
+const float Fluid::getVelX(const int x, const int y) const { return this->Vx[IX(x, y)]; }
+const float Fluid::getVelY(const int x, const int y) const { return this->Vy[IX(x, y)]; }
