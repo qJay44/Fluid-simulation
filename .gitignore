@@ -363,5 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # Other
-.vscode/
-olcEngine3D/olcConsoleGameEngine.h
+*.dll

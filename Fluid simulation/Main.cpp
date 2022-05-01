@@ -7,7 +7,6 @@
 #include "Fluid.h"
 
 void renderDensity(Fluid&, sf::RenderWindow&);
-const int pIX(int x, int y);
 
 int main()
 {
@@ -30,27 +29,30 @@ int main()
 			if (event.type == sf::Event::Closed)
 				window.close();
 
+			if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Key::C)
+				fluid.changeColorMode();
+
 			if (event.type == sf::Event::MouseMoved)
 			{
-				const int x = sf::Mouse::getPosition(window).x / (SCALE);
-				const int y = sf::Mouse::getPosition(window).y / (SCALE);
+				const int x = sf::Mouse::getPosition(window).x / SCALE;
+				const int y = sf::Mouse::getPosition(window).y / SCALE;
 
 				const float velX = (float) x - prev_x;
 				const float velY = (float) y - prev_y;
 
-				fluid.addDensity(x, y, 100.f);
+				fluid.addDensity(x, y, 300.f);
 				fluid.addVelocity(x, y, velX, velY);
 
 				prev_x = x;
 				prev_y = y;
 			}
-				
 		}
 
 		window.clear();
 
 		fluid.step();
 		renderDensity(fluid, window);
+		fluid.fadeDensity();
 
 		window.display();
 	}
@@ -64,27 +66,27 @@ void renderDensity(Fluid& fluid, sf::RenderWindow& win)
 	{
 		for (size_t j = 0; j < N; j++)
 		{
-			const int x = i * SCALE;
-			const int y = j * SCALE;
-			const sf::Uint8 d = (sf::Uint8) fluid.getDensity()[pIX(i, j)];
-
 			sf::RectangleShape rect;
-			rect.setFillColor(sf::Color(d, d, d));
 			rect.setSize(sf::Vector2f(SCALE, SCALE));
-			rect.setPosition(sf::Vector2f((float) x, (float) y));
+			rect.setPosition(i * SCALE, j * SCALE);
+
+			switch (fluid.getColorMode())
+			{
+			case 0:
+				const float density = fluid.getDensity(i, j);
+				const sf::Uint8 alpha = density > 255 ? (sf::Uint8) 255 : (sf::Uint8) density;
+				rect.setFillColor(sf::Color(255, 255, 255, alpha));
+
+				break;
+			case 1:
+				rect.setFillColor()
+
+			default:
+				break;
+			}
 
 			win.draw(rect);
 		}
 	}
 }
 
-const int pIX(int x, int y)
-{
-	x = x < 0 ? 0 : x;
-	x = x > N - 1 ? N - 1 : x;
-
-	y = y < 0 ? 0 : y;
-	y = y > N - 1 ? N - 1 : y;
-
-	return x + (y * N);
-}
