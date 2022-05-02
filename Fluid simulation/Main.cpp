@@ -1,10 +1,10 @@
-#include <iostream>
 #include "SFML/Graphics.hpp"
 #include "SFML/Window.hpp"
 #include "SFML/System.hpp"
 
 #include "Constants.h"
 #include "Fluid.h"
+#include <iostream>
 
 void renderDensity(Fluid&, sf::RenderWindow&);
 const sf::Color HSV(int hue, float sat, float va, const float d);
@@ -20,9 +20,13 @@ int main()
 
 	Fluid fluid(0.1f, 0.f, 0.f);
 
+	// current mouse coords
+	int MouseX = 0;
+	int MouseY = 0;
+
 	// previous mouse coords
-	int prev_x = 0;
-	int prev_y = 0;
+	int MouseX0 = 0;
+	int MouseY0 = 0;
 
 	while (window.isOpen())
 	{
@@ -36,21 +40,30 @@ int main()
 			if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Key::C)
 				fluid.changeColorMode();
 
-			// add density and velocity when mouse pressed
-			if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+			if (event.type == sf::Event::MouseMoved)
 			{
-				const int x = sf::Mouse::getPosition(window).x / SCALE;
-				const int y = sf::Mouse::getPosition(window).y / SCALE;
+				MouseX = sf::Mouse::getPosition(window).x;
+				MouseY = sf::Mouse::getPosition(window).y;
+			}
 
-				const float velX = (float) x - prev_x;
-				const float velY = (float) y - prev_y;
+			// add density and velocity when mouse pressed
+			if (event.type == sf::Event::MouseMoved && sf::Mouse::isButtonPressed(sf::Mouse::Left))
+			{
+				const int x = MouseX / SCALE;
+				const int y = MouseY / SCALE;
+
+				const int x0 = MouseX0 / SCALE;
+				const int y0 = MouseY0 / SCALE;
+
+				const float velX = (float)x - x0;
+				const float velY = (float)y - y0;
 
 				fluid.addDensity(x, y, 500.f);
 				fluid.addVelocity(x, y, velX, velY);
-
-				prev_x = x;
-				prev_y = y;
 			}
+
+			MouseX0 = MouseX;
+			MouseY0 = MouseY;
 		}
 
 		window.clear();
@@ -74,7 +87,7 @@ void renderDensity(Fluid& fluid, sf::RenderWindow& win)
 		{
 			sf::RectangleShape rect;
 			rect.setSize(sf::Vector2f(SCALE, SCALE));
-			rect.setPosition((int) i * SCALE, (int) j * SCALE);
+			rect.setPosition((float) i * SCALE, (float) j * SCALE);
 			const float density = fluid.getDensity(i, j);
 
 			switch (fluid.getColorMode())
