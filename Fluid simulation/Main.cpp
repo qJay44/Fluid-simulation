@@ -15,11 +15,12 @@ int main()
 	const unsigned int w = N * SCALE;
 	const unsigned int h = N * SCALE;
 
-	sf::RenderWindow window(sf::VideoMode(w, h), "Fluid simulation", sf::Style::Default);
+	sf::RenderWindow window(sf::VideoMode(w, h), "Fluid simulation", sf::Style::Close);
 	window.setFramerateLimit(75);
 
-	Fluid fluid(0.1f, 0, 0);
+	Fluid fluid(0.1f, 0.f, 0.f);
 
+	// previous mouse coords
 	int prev_x = 0;
 	int prev_y = 0;
 
@@ -31,9 +32,11 @@ int main()
 			if (event.type == sf::Event::Closed)
 				window.close();
 
+			// change color mode
 			if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Key::C)
 				fluid.changeColorMode();
 
+			// add density and velocity when mouse pressed
 			if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
 			{
 				const int x = sf::Mouse::getPosition(window).x / SCALE;
@@ -52,6 +55,7 @@ int main()
 
 		window.clear();
 
+		// draw
 		fluid.step();
 		renderDensity(fluid, window);
 		fluid.fadeDensity();
@@ -75,6 +79,7 @@ void renderDensity(Fluid& fluid, sf::RenderWindow& win)
 
 			switch (fluid.getColorMode())
 			{
+				// Black and white color mode
 				case 0:
 				{
 					const sf::Uint8 alpha = density > 255 ? (sf::Uint8)255 : (sf::Uint8)density;
@@ -82,9 +87,11 @@ void renderDensity(Fluid& fluid, sf::RenderWindow& win)
 
 					break;
 				}
+				// HSV color mode
 				case 1:
 					rect.setFillColor(HSV((int) density, 1, 1, 255));
 					break;
+				// HSV velocity color mode
 				case 2:
 				{
 					const unsigned int r = (int)MapToRange(fluid.getVelX(i, j), -0.05f, 0.05f, 0, 255);
@@ -131,6 +138,7 @@ const sf::Color HSV(int hue, float sat, float val, const float d)
 	}
 }
 
+// normalize values
 const float MapToRange(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut)
 {
 	const float x = (val - minIn) / (maxIn - minIn);
