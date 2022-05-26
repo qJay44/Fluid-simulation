@@ -8,7 +8,7 @@
 
 void renderDensity(Fluid&, sf::RenderWindow&);
 const sf::Color HSV(int hue, float sat, float va, const float d);
-const float MapToRange(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut);
+const float Normalize(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut);
 
 int main()
 {
@@ -107,8 +107,8 @@ void renderDensity(Fluid& fluid, sf::RenderWindow& win)
 				// HSV velocity color mode
 				case 2:
 				{
-					const unsigned int r = (int)MapToRange(fluid.getVelX(i, j), -0.05f, 0.05f, 0, 255);
-					const unsigned int g = (int)MapToRange(fluid.getVelY(i, j), -0.05f, 0.05f, 0, 255);
+					const unsigned int r = (int)Normalize(fluid.getVelX(i, j), -0.05f, 0.05f, 0, 255);
+					const unsigned int g = (int)Normalize(fluid.getVelY(i, j), -0.05f, 0.05f, 0, 255);
 					rect.setFillColor(sf::Color(r, g, 255));
 					break;
 				}
@@ -152,7 +152,7 @@ const sf::Color HSV(int hue, float sat, float val, const float d)
 }
 
 // normalize values
-const float MapToRange(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut)
+const float Normalize(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut)
 {
 	const float x = (val - minIn) / (maxIn - minIn);
 	const float result = minOut + (maxOut - minOut) * x;

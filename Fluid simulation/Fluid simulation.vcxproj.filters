@@ -21,6 +21,9 @@
     <ClCompile Include="Fluid.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
+    <ClCompile Include="Main_OpenGL.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Constants.h">
