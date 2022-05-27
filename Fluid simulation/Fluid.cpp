@@ -19,14 +19,14 @@ Fluid::Fluid(float dt, float diffusion, float viscosity)
 
 Fluid::~Fluid()
 {
-	delete this->s;
-	delete this->density;
+	delete[] this->s;
+	delete[] this->density;
 
-	delete this->Vx;
-	delete this->Vy;
+	delete[] this->Vx;
+	delete[] this->Vy;
 
-	delete this->Vx0;
-	delete this->Vy0;
+	delete[] this->Vx0;
+	delete[] this->Vy0;
 }
 
 void Fluid::step()

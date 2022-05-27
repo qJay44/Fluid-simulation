@@ -15,6 +15,7 @@ int main() {
 	const unsigned int w = N * SCALE;
 	const unsigned int h = N * SCALE;
 
+
     sf::Window window(sf::VideoMode(w, h), "My OpenGL window", sf::Style::Default);
     SetIcon(window);
 
@@ -75,10 +76,11 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         fluid.step();
-        Draw(fluid, window);
+		Draw(fluid, window);
         fluid.fadeDensity();
 
-        window.display();
+		window.display();
+
     }
 
     return 0;
@@ -91,7 +93,6 @@ void Init()
 
 void Draw(Fluid& fluid, sf::Window& win)
 {
-
 	glLoadIdentity();
     for (size_t i = 0; i < N; i++)
     {
@@ -106,17 +107,16 @@ void Draw(Fluid& fluid, sf::Window& win)
             const float size = 2.f / SCALE;
 
 			glBegin(GL_QUADS);
-			glColor4f(1.f, 1.f, 1.f, Normalize(density, 0.f, 1000.f, 0.f, 1.f));
+			glColor4f(1.f, 1.f, 1.f, (GLfloat) density / 100.f);
 
-            glVertex2f(posX, posY);
-            glVertex2f(posX, posY + size);
-            glVertex2f(posX + size, posY + size);
-            glVertex2f(posX + size, posY);
+            glVertex2f(posX, -posY);
+            glVertex2f(posX, -posY + size);
+            glVertex2f(posX + size, -posY + size);
+            glVertex2f(posX + size, -posY);
 
 			glEnd();
         }
     }
-
 	glFlush();
 }
 
