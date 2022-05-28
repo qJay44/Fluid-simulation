@@ -2,4 +2,4 @@
 
 const unsigned int N = 100;
 const unsigned int iter = 10;
-const unsigned int SCALE = 8;
+const unsigned int SCALE = 10;

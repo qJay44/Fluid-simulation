@@ -15,7 +15,6 @@ int main() {
 	const unsigned int w = N * SCALE;
 	const unsigned int h = N * SCALE;
 
-
     sf::Window window(sf::VideoMode(w, h), "My OpenGL window", sf::Style::Default);
     SetIcon(window);
 
@@ -65,7 +64,7 @@ int main() {
 				const float velX = (float)x - x0;
 				const float velY = (float)y - y0;
 
-				fluid.addDensity(x, y, 100.f);
+				fluid.addDensity(x, y, 300.f);
 				fluid.addVelocity(x, y, velX, velY);
 			}
 
@@ -94,29 +93,44 @@ void Init()
 void Draw(Fluid& fluid, sf::Window& win)
 {
 	glLoadIdentity();
+    bool oo = true;
+
+	const float size = Normalize(SCALE, 0.f, N * SCALE, 0.f, 4.f);
+
     for (size_t i = 0; i < N; i++)
     {
         for (size_t j = 0; j < N; j++)
         {
-            const float width = win.getSize().x;
-            const float height = win.getSize().y;
 			const float density = fluid.getDensity(i, j);
 
-            const float posX = Normalize((i * SCALE), 0.f, (N - 1) * SCALE, -1.f, 1.f);
-            const float posY = Normalize((j * SCALE), 0.f, (N - 1) * SCALE, -1.f, 1.f);
-            const float size = 2.f / SCALE;
+            const float posX = Normalize((float)i, 0.f, N - 1, -1.f, 1.f);
+            const float posY = Normalize((float)j, 0.f, N - 1, -1.f, 1.f);
+
+            if (oo)
+            {
+                if (i == 0 && j == 0)
+                    std::cout << "x: " << posX << "\ty: " << posY << std::endl;
+                if (i == 0 && j == 1)
+                {
+                    std::cout << "x: " << posX << "\ty: " << posY << std::endl;
+                    std::cout << std::endl;
+                    oo = false;
+                }
+            }
 
 			glBegin(GL_QUADS);
-			glColor4f(1.f, 1.f, 1.f, (GLfloat) density / 100.f);
+			//glColor4f(1.f, 1.f, 1.f, (GLfloat) density / 100.f);
+			glColor4f(1.f, 1.f, 1.f, 0.4f);
 
-            glVertex2f(posX, -posY);
             glVertex2f(posX, -posY + size);
-            glVertex2f(posX + size, -posY + size);
+            glVertex2f(posX, -posY);
             glVertex2f(posX + size, -posY);
+            glVertex2f(posX + size, -posY + size);
 
 			glEnd();
         }
     }
+
 	glFlush();
 }
 

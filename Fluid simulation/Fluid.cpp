@@ -60,7 +60,7 @@ void Fluid::fadeDensity()
 {
 	for (size_t i = 0; i < N * N; i++)
 	{
-		this->density[i] = this->density[i] - 0.05f < 0 ? 0 : this->density[i] - 0.05f;
+		this->density[i] = this->density[i] - 0.05f < 0.f ? 0.f : this->density[i] - 0.05f;
 	}
 }
 void Fluid::fillArr(float arr[], const unsigned int size)
