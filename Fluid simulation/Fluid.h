@@ -1,13 +1,11 @@
 #pragma once
 
-#include "Constants.h"
-
 class Fluid
 {
 public:
 	unsigned int colorMode;
 
-	Fluid(float dt, float diffusion, float viscosity);
+	Fluid(float dt, float diffusion, float viscosity, float, int);
 	~Fluid();
 
 	void step();
@@ -22,19 +20,19 @@ public:
 	const float getVelY(const int x, const int y) const;
 
 private:
-	const unsigned int size = N;
+	int size;
 	float dt;
 	float diff;
 	float visc;
 
-	float* s = new float[N * N];
-	float* density = new float[N * N];
+	float* s = nullptr;
+	float* density = nullptr;
 	
-	float* Vx = new float[N * N];
-	float* Vy = new float[N * N];
+	float* Vx = nullptr;
+	float* Vy = nullptr;
 
-	float* Vx0 = new float[N * N];
-	float* Vy0 = new float[N * N];
+	float* Vx0 = nullptr;
+	float* Vy0 = nullptr;
 
-	void fillArr(float arr[], const unsigned int size);
+	float* fillArr();
 };

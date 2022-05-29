@@ -156,7 +156,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Constants.h" />
     <ClInclude Include="Fluid.h" />
     <ClInclude Include="FluidOperations.h" />
   </ItemGroup>

@@ -1,20 +1,26 @@
+#include "Config.h"
 #include "Fluid.h"
 #include "FluidOperations.h"
 
-Fluid::Fluid(float dt, float diffusion, float viscosity)
+Fluid::Fluid(float dt, float diffusion, float viscosity, float scale, int fieldSize)
 {
+    Operations.SetScale(scale);
+    Operations.SetFieldSize(fieldSize);
+    Operations.SetAmount(fieldSize * scale);
+
+	this->size = fieldSize;
 	this->dt = dt;
 	this->diff = diffusion;
 	this->visc = viscosity;
 
-	this->fillArr(this->s, N * N);
-	this->fillArr(this->density, N * N);
+	this->s = fillArr();
+	this->density = fillArr();
+	
+	this->Vx = fillArr();
+	this->Vy = fillArr();
 
-	this->fillArr(this->Vx, N * N);
-	this->fillArr(this->Vy, N * N);
-
-	this->fillArr(this->Vx0, N * N);
-	this->fillArr(this->Vy0, N * N);
+	this->Vx0 = fillArr();
+	this->Vy0 = fillArr();
 }
 
 Fluid::~Fluid()
@@ -31,49 +37,49 @@ Fluid::~Fluid()
 
 void Fluid::step()
 {
-	diffuse(1, this->Vx0, this->Vx, this->visc, this->dt);
-	diffuse(2, this->Vy0, this->Vy, this->visc, this->dt);
+	Operations.diffuse(1, this->Vx0, this->Vx, this->visc, this->dt);
+	Operations.diffuse(2, this->Vy0, this->Vy, this->visc, this->dt);
 	
-	project(this->Vx0, this->Vy0, this->Vx, this->Vy);
+	Operations.project(this->Vx0, this->Vy0, this->Vx, this->Vy);
 
-	advect(1, this->Vx, this->Vx0, this->Vx0, this->Vy0, this->dt);
-	advect(2, this->Vy, this->Vy0, this->Vx0, this->Vy0, this->dt);
+	Operations.advect(1, this->Vx, this->Vx0, this->Vx0, this->Vy0, this->dt);
+	Operations.advect(2, this->Vy, this->Vy0, this->Vx0, this->Vy0, this->dt);
 
-	project(this->Vx, this->Vy, this->Vx0, this->Vy0);
+	Operations.project(this->Vx, this->Vy, this->Vx0, this->Vy0);
 
-	diffuse(0, this->s, this->density, this->diff, this->dt);
-	advect(0, this->density, this->s, this->Vx, this->Vy, this->dt);
+	Operations.diffuse(0, this->s, this->density, this->diff, this->dt);
+	Operations.advect(0, this->density, this->s, this->Vx, this->Vy, this->dt);
 }
 
 void Fluid::addDensity(const int x, const int y, const float amount)
 {
-	this->density[IX(x, y)] += amount;
+	this->density[Operations.IX(x, y)] += amount;
 }
 
 void Fluid::addVelocity(const int x, const int y, const float amountX, const float amountY)
 {
-	this->Vx[IX(x, y)] += amountX;
-	this->Vy[IX(x, y)] += amountY;
+	this->Vx[Operations.IX(x, y)] += amountX;
+	this->Vy[Operations.IX(x, y)] += amountY;
 }
 
 void Fluid::fadeDensity()
 {
-	for (size_t i = 0; i < N * N; i++)
-	{
+	for (size_t i = 0; i < this->size; i++)
 		this->density[i] = this->density[i] - 0.05f < 0.f ? 0.f : this->density[i] - 0.05f;
-	}
 }
-void Fluid::fillArr(float arr[], const unsigned int size)
+
+float* Fluid::fillArr()
 {
-	for (size_t i = 0; i < size; i++)
-	{
+	float* arr = new float[this->size];
+	for (size_t i = 0; i < this->size; i++)
 		arr[i] = 0.f;
-	}
+
+	return arr;
 }
 
 const float Fluid::getDensity(const int x, const int y) const
 {
-	return this->density[IX(x, y)];
+	return this->density[Operations.IX(x, y)];
 }
 
 void Fluid::changeColorMode()
@@ -82,5 +88,5 @@ void Fluid::changeColorMode()
 }
 
 const int Fluid::getColorMode() const { return this->colorMode; }
-const float Fluid::getVelX(const int x, const int y) const { return this->Vx[IX(x, y)]; }
-const float Fluid::getVelY(const int x, const int y) const { return this->Vy[IX(x, y)]; }
+const float Fluid::getVelX(const int x, const int y) const { return this->Vx[Operations.IX(x, y)]; }
+const float Fluid::getVelY(const int x, const int y) const { return this->Vy[Operations.IX(x, y)]; }
