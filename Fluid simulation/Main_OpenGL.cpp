@@ -4,14 +4,25 @@
 #include <iostream>
 #include "Fluid.h"
 
+struct 
+{
+	GLfloat* colors = new GLfloat[4];
+} TempVar;
+
 void Init();
-void Draw(Fluid& fluid, sf::Window& win, float scale);
+void Draw(Fluid& fluid, sf::Window& win, int N, int SCALE);
+void HSV(int hue, float sat, float va, const float d);
 const float Normalize(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut);
 void SetIcon(sf::Window& wnd);
 
 int main()
 {
-    sf::Window window(sf::VideoMode(600, 600), "My OpenGL window", sf::Style::Close);
+    Fluid fluid(0.1f, 0.f, 0.f);
+
+    const int N = fluid.getN();
+    const int SCALE = fluid.getScale();
+
+    sf::Window window(sf::VideoMode(N * SCALE, N * SCALE), "My OpenGL window", sf::Style::Close);
     SetIcon(window);
 
     window.setVerticalSyncEnabled(true);
@@ -20,12 +31,6 @@ int main()
     Init();
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
-
-    const unsigned int w = window.getSize().x;
-    const unsigned int h = window.getSize().y;
-    const float scale = 0.0001f;
-
-    Fluid fluid(0.1f, 0.f, 0.f, scale, w * h);
 
 	// current mouse coords
 	int MouseX = 0;
@@ -44,6 +49,10 @@ int main()
             if (event.type == sf::Event::Resized)
                 glViewport(0, 0, event.size.width, event.size.height);
 
+			// change color mode
+			if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Key::C)
+				fluid.changeColorMode();
+
 			if (event.type == sf::Event::MouseMoved)
 			{
 				MouseX = sf::Mouse::getPosition(window).x;
@@ -53,11 +62,11 @@ int main()
 			// add density and velocity when mouse pressed
 			if (event.type == sf::Event::MouseMoved && sf::Mouse::isButtonPressed(sf::Mouse::Left))
 			{
-				const int x = MouseX / scale;
-				const int y = MouseY / scale;
+				const int x = MouseX / SCALE;
+				const int y = MouseY / SCALE;
 
-				const int x0 = MouseX0 / scale;
-				const int y0 = MouseY0 / scale;
+				const int x0 = MouseX0 / SCALE;
+				const int y0 = MouseY0 / SCALE;
 
 				const float velX = (float)x - x0;
 				const float velY = (float)y - y0;
@@ -73,11 +82,10 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         fluid.step();
-		Draw(fluid, window, scale);
+		Draw(fluid, window, N, SCALE);
         fluid.fadeDensity();
 
 		window.display();
-
     }
 
     return 0;
@@ -88,27 +96,52 @@ void Init()
     glClearColor(0.f, 0.f, 0.0f, 1.0f);
 }
 
-void Draw(Fluid& fluid, sf::Window& win, float scale)
+void Draw(Fluid& fluid, sf::Window& win, int N, int SCALE)
 {
 	glLoadIdentity();
 
-    const unsigned int w = win.getSize().x;
-    const unsigned int h = win.getSize().y;
-	const float size = Normalize(scale, 0.f, w * h, 0.f, 4.f);
+	const float size = 2.f / SCALE;
 
-    for (size_t i = 0; i < w; i++)
+    for (size_t i = 0; i < N; i++)
     {
-        for (size_t j = 0; j < h; j++)
+        for (size_t j = 0; j < N; j++)
         {
 			const float density = fluid.getDensity(i, j);
+            const float posX = Normalize((float)i, 0.f, N - 1, -1.f, 1.f);
+            const float posY = Normalize((float)j, 0.f, N - 1, -1.f, 1.f);
 
-            const float posX = Normalize((float)i, 0.f, w - 1, -1.f, 1.f);
-            const float posY = Normalize((float)j, 0.f, h - 1, -1.f, 1.f);
+            switch (fluid.getColorMode())
+            {
+				case 0:
+				{
+					TempVar.colors[0] = 1.f;
+					TempVar.colors[1] = 1.f;
+					TempVar.colors[2] = 1.f;
+					TempVar.colors[3] = (GLfloat)density / 100.f;
+					break;
+				}
+
+				case 1:
+				{
+					HSV((int)density, 1.f, 1.f, 1.f);
+					break;
+				}
+
+				case 2:
+				{
+					TempVar.colors[0] = Normalize(fluid.getVelX(i, j), -0.05f, 0.05f, 0.f, 1.f);
+					TempVar.colors[1] = Normalize(fluid.getVelY(i, j), -0.05f, 0.05f, 0.f, 1.f);
+					TempVar.colors[2] = 1.f;
+					TempVar.colors[3] = 1.f;
+					break;
+				}
+				default:
+					break;
+            }
 
 			glBegin(GL_QUADS);
-			//glColor4f(1.f, 1.f, 1.f, (GLfloat) density / 100.f);
-			glColor4f(1.f, 1.f, 1.f, 0.2f);
 
+			glColor4f(TempVar.colors[0], TempVar.colors[1], TempVar.colors[2], TempVar.colors[3]);
             glVertex2f(posX, -posY + size);
             glVertex2f(posX, -posY);
             glVertex2f(posX + size, -posY);
@@ -119,6 +152,36 @@ void Draw(Fluid& fluid, sf::Window& win, float scale)
     }
 
 	glFlush();
+}
+
+void HSV(int hue, float sat, float val, const float d)
+{
+	hue %= 360;
+	while (hue < 0) hue += 360;
+
+	if (sat < 0.f) sat = 0.f;
+	if (sat > 1.f) sat = 1.f;
+
+	if (val < 0.f) val = 0.f;
+	if (val > 1.f) val = 1.f;
+
+	const int h = hue / 60;
+	float f = float(hue) / 60.f - h;
+	float p = val * (1.f - sat);
+	float q = val * (1.f - sat * f);
+	float t = val * (1.f - sat * (1 - f));
+
+	switch (h)
+	{
+		default:
+		case 0:
+		case 6: { TempVar.colors[0] = val * 1.f; TempVar.colors[1] = t * 1.f;   TempVar.colors[2] = p * 1.f;   TempVar.colors[3] = d; break; }
+		case 1: { TempVar.colors[0] = q * 1.f;   TempVar.colors[1] = val * 1.f, TempVar.colors[2] = p * 1.f,   TempVar.colors[3] = d; break; }
+		case 2: { TempVar.colors[0] = p * 1.f;   TempVar.colors[1] = val * 1.f, TempVar.colors[2] = t * 1.f,   TempVar.colors[3] = d; break; }
+		case 3: { TempVar.colors[0] = p * 1.f;   TempVar.colors[1] = q * 1.f,   TempVar.colors[2] = val * 1.f, TempVar.colors[3] = d; break; }
+		case 4: { TempVar.colors[0] = t * 1.f;   TempVar.colors[1] = p * 1.f,   TempVar.colors[2] = val * 1.f, TempVar.colors[3] = d; break; }
+		case 5: { TempVar.colors[0] = val * 1.f; TempVar.colors[1] = p * 1.f,   TempVar.colors[2] = q * 1.f,   TempVar.colors[3] = d; break; }
+	}
 }
 
 // normalize values

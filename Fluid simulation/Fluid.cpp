@@ -1,14 +1,10 @@
-#include "Config.h"
 #include "Fluid.h"
 #include "FluidOperations.h"
+#include <iostream>
 
-Fluid::Fluid(float dt, float diffusion, float viscosity, float scale, int fieldSize)
+Fluid::Fluid(float dt, float diffusion, float viscosity)
 {
-    Operations.SetScale(scale);
-    Operations.SetFieldSize(fieldSize);
-    Operations.SetAmount(fieldSize * scale);
-
-	this->size = fieldSize;
+	this->size = Operations.GetN() * Operations.GetN();
 	this->dt = dt;
 	this->diff = diffusion;
 	this->visc = viscosity;
@@ -90,3 +86,5 @@ void Fluid::changeColorMode()
 const int Fluid::getColorMode() const { return this->colorMode; }
 const float Fluid::getVelX(const int x, const int y) const { return this->Vx[Operations.IX(x, y)]; }
 const float Fluid::getVelY(const int x, const int y) const { return this->Vy[Operations.IX(x, y)]; }
+const int Fluid::getScale() const { return Operations.GetScale(); }
+const int Fluid::getN() const { return Operations.GetN(); }

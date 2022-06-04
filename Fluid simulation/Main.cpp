@@ -1,24 +1,22 @@
 #include "SFML/Graphics.hpp"
 #include "SFML/Window.hpp"
 #include "SFML/System.hpp"
-
-#include "Constants.h"
 #include "Fluid.h"
 #include <iostream>
 
-void renderDensity(Fluid&, sf::RenderWindow&);
+void renderDensity(Fluid&, sf::RenderWindow&, int N, int SCALE);
 const sf::Color HSV(int hue, float sat, float va, const float d);
 const float Normalize(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut);
 
 int main()
 {
-	const unsigned int w = N * SCALE;
-	const unsigned int h = N * SCALE;
-
-	sf::RenderWindow window(sf::VideoMode(w, h), "Fluid simulation", sf::Style::Close);
-	window.setFramerateLimit(75);
-
 	Fluid fluid(0.1f, 0.f, 0.f);
+
+	const int N = fluid.getN();
+	const int SCALE = fluid.getScale();
+
+	sf::RenderWindow window(sf::VideoMode(N * SCALE, N * SCALE), "Fluid simulation", sf::Style::Close);
+	window.setFramerateLimit(75);
 
 	// current mouse coords
 	int MouseX = 0;
@@ -70,7 +68,7 @@ int main()
 
 		// draw
 		fluid.step();
-		renderDensity(fluid, window);
+		renderDensity(fluid, window, N, SCALE);
 		fluid.fadeDensity();
 
 		window.display();
@@ -79,7 +77,7 @@ int main()
 	return 0;
 }
 
-void renderDensity(Fluid& fluid, sf::RenderWindow& win)
+void renderDensity(Fluid& fluid, sf::RenderWindow& win, int N, int SCALE)
 {
 	for (size_t i = 0; i < N; i++)
 	{
@@ -102,8 +100,10 @@ void renderDensity(Fluid& fluid, sf::RenderWindow& win)
 				}
 				// HSV color mode
 				case 1:
-					rect.setFillColor(HSV((int) density, 1, 1, 255));
+				{
+					rect.setFillColor(HSV((int)density, 1.f, 1.f, 255.f));
 					break;
+				}
 				// HSV velocity color mode
 				case 2:
 				{

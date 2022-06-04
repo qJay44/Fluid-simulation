@@ -5,15 +5,8 @@
 struct
 {
 public:
-	inline const int GetAmount() const { return this->N; }
-	inline const int GetIter() const { return this->iter; }
-	inline const float GetScale() const { return this->scale; }
-	inline const float GetFieldSize() const { return this->fieldSize; }
-
-	inline void SetAmount(const int num) { this->N = num * this->scale; }
-	inline void SetIter(const int num) { this->iter = num; }
-	inline void SetScale(const float num) { this->scale = num; }
-	inline void SetFieldSize(const int num) { this->fieldSize = num; }
+	inline const int GetScale() const { return this->SCALE; }
+	inline const int GetN() const { return this->N; }
 
 	const int IX(int x, int y)
 	{
@@ -161,9 +154,8 @@ public:
 	}
 
 private:
-	float scale;
+	unsigned int N = 100;
 	unsigned int iter = 10;
-	unsigned int fieldSize;
-	unsigned int N;
+	unsigned int SCALE = 10;
 
 } Operations;

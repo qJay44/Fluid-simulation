@@ -3,9 +3,8 @@
 class Fluid
 {
 public:
-	unsigned int colorMode;
 
-	Fluid(float dt, float diffusion, float viscosity, float, int);
+	Fluid(float dt, float diffusion, float viscosity);
 	~Fluid();
 
 	void step();
@@ -18,9 +17,12 @@ public:
 	const int getColorMode() const;
 	const float getVelX(const int x, const int y) const;
 	const float getVelY(const int x, const int y) const;
+	const int getScale() const;
+	const int getN() const;
 
 private:
-	int size;
+	unsigned int colorMode = 0;
+	unsigned int size;
 	float dt;
 	float diff;
 	float visc;
