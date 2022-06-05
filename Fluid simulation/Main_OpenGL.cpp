@@ -4,13 +4,8 @@
 #include <iostream>
 #include "Fluid.h"
 
-struct 
-{
-	GLfloat* colors = new GLfloat[4];
-} TempVar;
-
 void Init();
-void Draw(Fluid& fluid, sf::Window& win, int N, int SCALE);
+void Draw(Fluid& fluid, sf::Window& win, const unsigned int N, const unsigned int SCALE);
 void HSV(int hue, float sat, float va, const float d);
 const float Normalize(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut);
 void SetIcon(sf::Window& wnd);
@@ -19,8 +14,8 @@ int main()
 {
     Fluid fluid(0.1f, 0.f, 0.f);
 
-    const int N = fluid.getN();
-    const int SCALE = fluid.getScale();
+    const unsigned int N = fluid.getN();
+    const unsigned int SCALE = fluid.getScale();
 
     sf::Window window(sf::VideoMode(N * SCALE, N * SCALE), "My OpenGL window", sf::Style::Close);
     SetIcon(window);
@@ -43,7 +38,7 @@ int main()
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed || (event.type == sf::Event::KeyPressed && sf::Keyboard::Space))
+            if (event.type == sf::Event::Closed || (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Key::Space))
                 window.close();
 
             if (event.type == sf::Event::Resized)
@@ -91,33 +86,35 @@ int main()
     return 0;
 }
 
+struct { GLfloat colors[4] = {0.f, 0.f, 0.f, 0.f}; } ColorVar;
+
 void Init()
 {
     glClearColor(0.f, 0.f, 0.0f, 1.0f);
 }
 
-void Draw(Fluid& fluid, sf::Window& win, int N, int SCALE)
+void Draw(Fluid& fluid, sf::Window& win, const unsigned int N, const unsigned int SCALE)
 {
 	glLoadIdentity();
 
-	const float size = 2.f / SCALE;
+	const float size = Normalize((float)SCALE, 0.f, (float)N * SCALE, 0.f, 2.f);
 
     for (size_t i = 0; i < N; i++)
     {
         for (size_t j = 0; j < N; j++)
         {
 			const float density = fluid.getDensity(i, j);
-            const float posX = Normalize((float)i, 0.f, N - 1, -1.f, 1.f);
-            const float posY = Normalize((float)j, 0.f, N - 1, -1.f, 1.f);
+            const float posX = Normalize((float)i, 0.f, N - 1.f, -1.f, 1.f);
+            const float posY = Normalize((float)j, 0.f, N - 1.f, -1.f, 1.f);
 
             switch (fluid.getColorMode())
             {
 				case 0:
 				{
-					TempVar.colors[0] = 1.f;
-					TempVar.colors[1] = 1.f;
-					TempVar.colors[2] = 1.f;
-					TempVar.colors[3] = (GLfloat)density / 100.f;
+					ColorVar.colors[0] = 1.f;
+					ColorVar.colors[1] = 1.f;
+					ColorVar.colors[2] = 1.f;
+					ColorVar.colors[3] = density / 100.f;
 					break;
 				}
 
@@ -129,10 +126,10 @@ void Draw(Fluid& fluid, sf::Window& win, int N, int SCALE)
 
 				case 2:
 				{
-					TempVar.colors[0] = Normalize(fluid.getVelX(i, j), -0.05f, 0.05f, 0.f, 1.f);
-					TempVar.colors[1] = Normalize(fluid.getVelY(i, j), -0.05f, 0.05f, 0.f, 1.f);
-					TempVar.colors[2] = 1.f;
-					TempVar.colors[3] = 1.f;
+					ColorVar.colors[0] = Normalize(fluid.getVelX(i, j), -0.05f, 0.05f, 0.f, 1.f);
+					ColorVar.colors[1] = Normalize(fluid.getVelY(i, j), -0.05f, 0.05f, 0.f, 1.f);
+					ColorVar.colors[2] = 1.f;
+					ColorVar.colors[3] = 1.f;
 					break;
 				}
 				default:
@@ -141,7 +138,7 @@ void Draw(Fluid& fluid, sf::Window& win, int N, int SCALE)
 
 			glBegin(GL_QUADS);
 
-			glColor4f(TempVar.colors[0], TempVar.colors[1], TempVar.colors[2], TempVar.colors[3]);
+			glColor4f(ColorVar.colors[0], ColorVar.colors[1], ColorVar.colors[2], ColorVar.colors[3]);
             glVertex2f(posX, -posY + size);
             glVertex2f(posX, -posY);
             glVertex2f(posX + size, -posY);
@@ -169,18 +166,18 @@ void HSV(int hue, float sat, float val, const float d)
 	float f = float(hue) / 60.f - h;
 	float p = val * (1.f - sat);
 	float q = val * (1.f - sat * f);
-	float t = val * (1.f - sat * (1 - f));
+	float t = val * (1.f - sat * (1.f - f));
 
 	switch (h)
 	{
 		default:
 		case 0:
-		case 6: { TempVar.colors[0] = val * 1.f; TempVar.colors[1] = t * 1.f;   TempVar.colors[2] = p * 1.f;   TempVar.colors[3] = d; break; }
-		case 1: { TempVar.colors[0] = q * 1.f;   TempVar.colors[1] = val * 1.f, TempVar.colors[2] = p * 1.f,   TempVar.colors[3] = d; break; }
-		case 2: { TempVar.colors[0] = p * 1.f;   TempVar.colors[1] = val * 1.f, TempVar.colors[2] = t * 1.f,   TempVar.colors[3] = d; break; }
-		case 3: { TempVar.colors[0] = p * 1.f;   TempVar.colors[1] = q * 1.f,   TempVar.colors[2] = val * 1.f, TempVar.colors[3] = d; break; }
-		case 4: { TempVar.colors[0] = t * 1.f;   TempVar.colors[1] = p * 1.f,   TempVar.colors[2] = val * 1.f, TempVar.colors[3] = d; break; }
-		case 5: { TempVar.colors[0] = val * 1.f; TempVar.colors[1] = p * 1.f,   TempVar.colors[2] = q * 1.f,   TempVar.colors[3] = d; break; }
+		case 6: { ColorVar.colors[0] = val * 1.f; ColorVar.colors[1] = t * 1.f;   ColorVar.colors[2] = p * 1.f;   ColorVar.colors[3] = d; break; }
+		case 1: { ColorVar.colors[0] = q * 1.f;   ColorVar.colors[1] = val * 1.f, ColorVar.colors[2] = p * 1.f,   ColorVar.colors[3] = d; break; }
+		case 2: { ColorVar.colors[0] = p * 1.f;   ColorVar.colors[1] = val * 1.f, ColorVar.colors[2] = t * 1.f,   ColorVar.colors[3] = d; break; }
+		case 3: { ColorVar.colors[0] = p * 1.f;   ColorVar.colors[1] = q * 1.f,   ColorVar.colors[2] = val * 1.f, ColorVar.colors[3] = d; break; }
+		case 4: { ColorVar.colors[0] = t * 1.f;   ColorVar.colors[1] = p * 1.f,   ColorVar.colors[2] = val * 1.f, ColorVar.colors[3] = d; break; }
+		case 5: { ColorVar.colors[0] = val * 1.f; ColorVar.colors[1] = p * 1.f,   ColorVar.colors[2] = q * 1.f,   ColorVar.colors[3] = d; break; }
 	}
 }
 

@@ -8,7 +8,7 @@ public:
 	inline const int GetScale() const { return this->SCALE; }
 	inline const int GetN() const { return this->N; }
 
-	const int IX(int x, int y)
+	const int IX(unsigned int x, unsigned int y)
 	{
 		x = x < 0 ? 0 : x;
 		x = x > N - 1 ? N - 1 : x;
@@ -110,9 +110,9 @@ public:
 		float s0, s1, t0, t1;
 		float tmp1, tmp2, x, y;
 
-		float Nfloat = N;
+		float Nfloat = (float)N;
 		float ifloat, jfloat;
-		int i, j;
+		unsigned int i, j;
 
 		for (j = 1, jfloat = 1.f; j < N - 1; j++, jfloat++)
 		{
@@ -154,8 +154,8 @@ public:
 	}
 
 private:
-	unsigned int N = 100;
-	unsigned int iter = 10;
-	unsigned int SCALE = 10;
+	const unsigned int N = 100;
+	const unsigned int iter = 10;
+	const unsigned int SCALE = 10;
 
 } Operations;
