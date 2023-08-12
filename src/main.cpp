@@ -2,17 +2,53 @@
 #include "SFML/Window.hpp"
 #include "SFML/System.hpp"
 #include "Fluid.h"
+#include "imgui.h"
+#include "imgui-SFML.h"
 #include <iostream>
+#include <vector>
 
-void renderDensity(Fluid&, sf::RenderWindow&);
+
+void renderDensity(Fluid&, sf::RenderWindow&, std::vector<sf::RectangleShape>&);
 const sf::Color HSV(int hue, float sat, float va, const float d);
 const float Normalize(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut);
 
 int main() {
-	Fluid fluid(0.1f, 0.f, 0.f);
+  int densityLine = 3;
+  float densityValue = 100.f;
+
+  float dt = 0.1f;
+  float diffusion = 1.e-4f;
+  float viscocity = 0.f;
+
+  auto resetValues = [&] () {
+    densityLine = 3;
+    densityValue = 100.f;
+
+    dt = 0.1f;
+    diffusion = 1.f;
+    viscocity = 0.f;
+  };
+
+	Fluid fluid(dt, diffusion, viscocity);
 
 	sf::RenderWindow window(sf::VideoMode(N * SCALE, N * SCALE), "Fluid simulation", sf::Style::Close);
 	window.setFramerateLimit(75);
+  if (!ImGui::SFML::Init(window))
+    throw std::runtime_error("ImGui initialize fail");
+
+
+  std::vector<sf::RectangleShape> grid(N * N);
+  grid.reserve(N * N);
+
+
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < N; j++) {
+			sf::RectangleShape rect;
+			rect.setSize(sf::Vector2f(SCALE, SCALE));
+			rect.setPosition(i * SCALE, j * SCALE);
+      grid[i + j * N] = rect;
+    }
+  }
 
 	// current mouse coords
 	int MouseX = 0;
@@ -22,13 +58,18 @@ int main() {
 	int MouseX0 = 0;
 	int MouseY0 = 0;
 
+  bool doOnce = true;
+
+  sf::Clock deltaClock;
 	while (window.isOpen()) {
 		sf::Event event;
 		while (window.pollEvent(event)) {
+      ImGui::SFML::ProcessEvent(event);
+
 			if (event.type == sf::Event::Closed)
 				window.close();
 
-      if (event.type == sf::Event::KeyReleased && sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+      if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Key::Q)
         window.close();
 
 			// change color mode
@@ -40,44 +81,72 @@ int main() {
 				MouseY = sf::Mouse::getPosition(window).y;
 			}
 
-			// add density and velocity when mouse pressed
-			if (event.type == sf::Event::MouseMoved && sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-				const int x = MouseX / SCALE;
-				const int y = MouseY / SCALE;
+      // add density and velocity when mouse pressed
+      if (event.type == sf::Event::MouseMoved && sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+        if (!ImGui::IsAnyItemHovered() && !ImGui::IsWindowHovered(ImGuiFocusedFlags_AnyWindow) && !ImGui::IsItemFocused()) {
+          const int x = MouseX / SCALE;
+          const int y = MouseY / SCALE;
 
-				const int x0 = MouseX0 / SCALE;
-				const int y0 = MouseY0 / SCALE;
+          const int x0 = MouseX0 / SCALE;
+          const int y0 = MouseY0 / SCALE;
 
-				const float velX = (float)x - x0;
-				const float velY = (float)y - y0;
+          const float velX = (float)x - x0;
+          const float velY = (float)y - y0;
 
-				fluid.addDensity(x, y, 500.f);
-				fluid.addVelocity(x, y, velX, velY);
+          for (int i = -densityLine; i <= densityLine; i++) {
+            fluid.addDensity(x + i, y, densityValue);
+            fluid.addVelocity(x + i, y, velX, velY);
+          }
+        }
 			}
 
 			MouseX0 = MouseX;
 			MouseY0 = MouseY;
 		}
 
+    ImGui::SFML::Update(window, deltaClock.restart());
+
+    if (doOnce) {
+      ImGui::SetNextWindowPos({ 0, 0 });
+      ImGui::SetNextWindowCollapsed(true);
+
+      doOnce = false;
+    }
+
+    ImGui::Begin("Settings");
+    ImGui::SliderInt("add size", &densityLine, 0, 10);
+    ImGui::SliderFloat("add density value", &densityValue, 0.f, 1000.f);
+
+    ImGui::SliderFloat("time step", &dt, 0.001f, 3.f);
+    ImGui::SliderFloat("diffusion", &diffusion, 1.e-5f, 0.01f, "%.5f");
+    ImGui::SliderFloat("viscocity", &viscocity, 0.f, 1.f);
+
+    if (ImGui::Button("Reset"))
+      resetValues();
+
+    ImGui::End();
+
 		window.clear();
 
 		// draw
 		fluid.step();
-		renderDensity(fluid, window);
+		renderDensity(fluid, window, grid);
 		fluid.fadeDensity();
+
+    ImGui::SFML::Render(window);
 
 		window.display();
 	}
 
+  ImGui::SFML::Shutdown();
+
 	return 0;
 }
 
-void renderDensity(Fluid& fluid, sf::RenderWindow& win) {
+void renderDensity(Fluid& fluid, sf::RenderWindow& win, std::vector<sf::RectangleShape>& grid) {
 	for (int i = 0; i < N; i++) {
 		for (int j = 0; j < N; j++) {
-			sf::RectangleShape rect;
-			rect.setSize(sf::Vector2f(SCALE, SCALE));
-			rect.setPosition(i * SCALE, j * SCALE);
+      sf::RectangleShape& rect = grid[i + j * N];
 			const float density = fluid.getDensity(i, j);
 
 			switch (fluid.getColorMode()) {
@@ -127,6 +196,7 @@ const sf::Color HSV(int hue, float sat, float val, const float d) {
 
 	switch (h) {
 		default:
+    case 0:
 		case 6: return sf::Color(val * 255, t * 255, p * 255, d);
 		case 1: return sf::Color(q * 255, val * 255, p * 255, d);
 		case 2: return sf::Color(p * 255, val * 255, t * 255, d);

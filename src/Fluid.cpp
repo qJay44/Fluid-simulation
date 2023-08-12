@@ -1,11 +1,11 @@
 #include "Fluid.h"
 #include <cmath>
 
-Fluid::Fluid(float dt, float diffusion, float viscosity) {
+Fluid::Fluid(float& dt, float &diffusion, float& viscosity) {
 	this->size = N * N;
-	this->dt = dt;
-	this->diff = diffusion;
-	this->visc = viscosity;
+	this->dt = &dt;
+	this->diff = &diffusion;
+	this->visc = &viscosity;
 
 	this->s = fillArr();
 	this->density = fillArr();
@@ -110,8 +110,8 @@ void Fluid::lin_solve(const int b, float x[], const float x0[], const float a, c
   }
 }
 
-void Fluid::diffuse(const int b, float x[], const float x0[], const float diff, const float dt) {
-  const float a = dt * diff * (N - 2) * (N - 2);
+void Fluid::diffuse(const int b, float x[], const float x0[], const float* diff, const float* dt) {
+  const float a = *dt * *diff * (N - 2) * (N - 2);
   lin_solve(b, x, x0, a, 1 + 4 * a);
 }
 
@@ -143,11 +143,11 @@ void Fluid::project(float velocX[], float velocY[], float p[], float div[]) {
   set_bnd(2, velocY);
 }
 
-void Fluid::advect(const int b, float d[], const float d0[], const float velocX[], const float velocY[], const float dt) {
+void Fluid::advect(const int b, float d[], const float d0[], const float velocX[], const float velocY[], const float* dt) {
   float i0, i1, j0, j1;
 
-  float dtx = dt * (N - 2);
-  float dty = dt * (N - 2);
+  float dtx = *dt * (N - 2);
+  float dty = *dt * (N - 2);
 
   float s0, s1, t0, t1;
   float tmp1, tmp2, x, y;
