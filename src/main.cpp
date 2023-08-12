@@ -4,16 +4,12 @@
 #include "Fluid.h"
 #include <iostream>
 
-void renderDensity(Fluid&, sf::RenderWindow&, int N, int SCALE);
+void renderDensity(Fluid&, sf::RenderWindow&);
 const sf::Color HSV(int hue, float sat, float va, const float d);
 const float Normalize(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut);
 
-int main()
-{
+int main() {
 	Fluid fluid(0.1f, 0.f, 0.f);
-
-	const int N = fluid.getN();
-	const int SCALE = fluid.getScale();
 
 	sf::RenderWindow window(sf::VideoMode(N * SCALE, N * SCALE), "Fluid simulation", sf::Style::Close);
 	window.setFramerateLimit(75);
@@ -26,27 +22,26 @@ int main()
 	int MouseX0 = 0;
 	int MouseY0 = 0;
 
-	while (window.isOpen())
-	{
+	while (window.isOpen()) {
 		sf::Event event;
-		while (window.pollEvent(event))
-		{
+		while (window.pollEvent(event)) {
 			if (event.type == sf::Event::Closed)
 				window.close();
+
+      if (event.type == sf::Event::KeyReleased && sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+        window.close();
 
 			// change color mode
 			if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Key::C)
 				fluid.changeColorMode();
 
-			if (event.type == sf::Event::MouseMoved)
-			{
+			if (event.type == sf::Event::MouseMoved) {
 				MouseX = sf::Mouse::getPosition(window).x;
 				MouseY = sf::Mouse::getPosition(window).y;
 			}
 
 			// add density and velocity when mouse pressed
-			if (event.type == sf::Event::MouseMoved && sf::Mouse::isButtonPressed(sf::Mouse::Left))
-			{
+			if (event.type == sf::Event::MouseMoved && sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
 				const int x = MouseX / SCALE;
 				const int y = MouseY / SCALE;
 
@@ -68,7 +63,7 @@ int main()
 
 		// draw
 		fluid.step();
-		renderDensity(fluid, window, N, SCALE);
+		renderDensity(fluid, window);
 		fluid.fadeDensity();
 
 		window.display();
@@ -77,36 +72,29 @@ int main()
 	return 0;
 }
 
-void renderDensity(Fluid& fluid, sf::RenderWindow& win, int N, int SCALE)
-{
-	for (size_t i = 0; i < N; i++)
-	{
-		for (size_t j = 0; j < N; j++)
-		{
+void renderDensity(Fluid& fluid, sf::RenderWindow& win) {
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < N; j++) {
 			sf::RectangleShape rect;
 			rect.setSize(sf::Vector2f(SCALE, SCALE));
-			rect.setPosition((float) i * SCALE, (float) j * SCALE);
+			rect.setPosition(i * SCALE, j * SCALE);
 			const float density = fluid.getDensity(i, j);
 
-			switch (fluid.getColorMode())
-			{
+			switch (fluid.getColorMode()) {
 				// Black and white color mode
-				case 0:
-				{
+				case 0: {
 					const sf::Uint8 alpha = density > 255 ? (sf::Uint8)255 : (sf::Uint8)density;
 					rect.setFillColor(sf::Color(255, 255, 255, alpha));
 
 					break;
 				}
 				// HSV color mode
-				case 1:
-				{
+				case 1: {
 					rect.setFillColor(HSV((int)density, 1.f, 1.f, 255.f));
 					break;
 				}
 				// HSV velocity color mode
-				case 2:
-				{
+				case 2: {
 					const unsigned int r = (int)Normalize(fluid.getVelX(i, j), -0.05f, 0.05f, 0, 255);
 					const unsigned int g = (int)Normalize(fluid.getVelY(i, j), -0.05f, 0.05f, 0, 255);
 					rect.setFillColor(sf::Color(r, g, 255));
@@ -121,8 +109,7 @@ void renderDensity(Fluid& fluid, sf::RenderWindow& win, int N, int SCALE)
 	}
 }
 
-const sf::Color HSV(int hue, float sat, float val, const float d)
-{
+const sf::Color HSV(int hue, float sat, float val, const float d) {
 	hue %= 360;
 	while (hue < 0) hue += 360;
 
@@ -138,10 +125,8 @@ const sf::Color HSV(int hue, float sat, float val, const float d)
 	float q = val * (1.f - sat * f);
 	float t = val * (1.f - sat * (1 - f));
 
-	switch (h)
-	{
+	switch (h) {
 		default:
-		case 0:
 		case 6: return sf::Color(val * 255, t * 255, p * 255, d);
 		case 1: return sf::Color(q * 255, val * 255, p * 255, d);
 		case 2: return sf::Color(p * 255, val * 255, t * 255, d);
@@ -152,10 +137,10 @@ const sf::Color HSV(int hue, float sat, float val, const float d)
 }
 
 // normalize values
-const float Normalize(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut)
-{
+const float Normalize(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut) {
 	const float x = (val - minIn) / (maxIn - minIn);
 	const float result = minOut + (maxOut - minOut) * x;
 
 	return (result < minOut) ? minOut : (result > maxOut) ? maxOut : result;
 }
+

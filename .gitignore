@@ -1,6 +1,4 @@
-*.*
+.cache/
+.git/
+Build/
 
-!.gitignore
-!*.cpp
-!*.h
-!*.sln
