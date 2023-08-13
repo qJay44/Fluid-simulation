@@ -5,6 +5,7 @@
 #include "imgui.h"
 #include "imgui-SFML.h"
 #include <iostream>
+#include <string>
 #include <vector>
 
 class App {
@@ -31,10 +32,13 @@ class App {
   std::vector<sf::RectangleShape> grid;
 
   sf::Clock deltaClock;
+  sf::Time deltaTime;
   sf::RenderWindow window;
+  sf::Font genericFont;
+  sf::Text fpsText;
 
   void drawImGui() {
-    ImGui::SFML::Update(window, deltaClock.restart());
+    ImGui::SFML::Update(window, deltaTime);
 
     if (doOnce) {
       ImGui::SetNextWindowPos({ 0, 0 });
@@ -100,6 +104,11 @@ class App {
 		fluid.fadeDensity();
   }
 
+  void drawOther() {
+    fpsText.setString(std::to_string((int)(1.f / deltaTime.asSeconds())));
+    window.draw(fpsText);
+  }
+
   const sf::Color HSV(int hue, float sat, float val, const float d) {
     hue %= 360;
     while (hue < 0) hue += 360;
@@ -144,11 +153,24 @@ class App {
     void setup() {
       fluid.setup(dt, diffusion, viscocity);
 
+      // Setup main window
       window.create(sf::VideoMode(N * SCALE, N * SCALE), "Fluid simulation", sf::Style::Close);
       window.setFramerateLimit(75);
       if (!ImGui::SFML::Init(window))
         throw std::runtime_error("ImGui initialize fail");
 
+      // Font for some test text
+      genericFont.loadFromFile("../../src/fonts/Minecraft rus.ttf");
+
+      // FPS text setup
+      fpsText.setString("75");
+      fpsText.setFont(genericFont);
+      fpsText.setCharacterSize(20);
+      fpsText.setOutlineColor(sf::Color(31, 31, 31));
+      fpsText.setOutlineThickness(3.f);
+      fpsText.setPosition({ N * SCALE - fpsText.getLocalBounds().width, 0 });
+
+      // Fill grid with drawable rects //
       grid.resize(N * N);
       grid.reserve(N * N);
 
@@ -160,6 +182,7 @@ class App {
           grid[i + j * N] = rect;
         }
       }
+      //===============================//
     }
 
     void run() {
@@ -185,7 +208,9 @@ class App {
 
           // add density and velocity when mouse pressed
           if (event.type == sf::Event::MouseMoved && sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-            if (!ImGui::IsAnyItemHovered() && !ImGui::IsWindowHovered(ImGuiFocusedFlags_AnyWindow) && !ImGui::IsItemFocused()) {
+            if (!ImGui::IsAnyItemHovered() &&
+                !ImGui::IsWindowHovered(ImGuiFocusedFlags_AnyWindow) &&
+                !ImGui::IsAnyItemActive()) {
               const int x = MouseX / SCALE;
               const int y = MouseY / SCALE;
 
@@ -206,10 +231,13 @@ class App {
           MouseY0 = MouseY;
         }
 
+        deltaTime = deltaClock.restart();
+
         window.clear();
 
         drawImGui();
         drawDensity();
+        drawOther();
 
         ImGui::SFML::Render(window);
         window.display();

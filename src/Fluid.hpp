@@ -228,8 +228,8 @@ class Fluid {
       return this->density[IX(x, y)];
     }
 
-    const int getColorMode() const { return this->colorMode; }
-    const float getVelX(const int x, const int y) const { return this->Vx[IX(x, y)]; }
-    const float getVelY(const int x, const int y) const { return this->Vy[IX(x, y)]; }
+    inline const int getColorMode() const { return this->colorMode; }
+    inline const float getVelX(const int x, const int y) const { return this->Vx[IX(x, y)]; }
+    inline const float getVelY(const int x, const int y) const { return this->Vy[IX(x, y)]; }
 };
 
