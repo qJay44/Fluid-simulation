@@ -188,7 +188,6 @@ class Fluid {
 
       this->Vx0 = fillArr();
       this->Vy0 = fillArr();
-
     }
 
     void step() {
