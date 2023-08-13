@@ -17,7 +17,6 @@ include_directories(${OPENGL_INCLUDE_DIRS} ${IMGUI} ${IMGUI_SFML})
 
 add_executable(MyProject
   ${SRC_DIR}main.cpp
-  ${SRC_DIR}fluid.cpp
   ${IMGUI}imgui.cpp
   ${IMGUI}imgui_widgets.cpp
   ${IMGUI}imgui_draw.cpp
