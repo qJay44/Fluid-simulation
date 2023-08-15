@@ -5,7 +5,6 @@
 #include "Fluid.hpp"
 #include "imgui.h"
 #include "imgui-SFML.h"
-#include <gl/gl.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -29,10 +28,9 @@ class App {
   int MouseY0 = 0;
 
   bool doOnce = true;
-  const float normalizedSize = 2.f / N;
 
   Fluid fluid;
-  std::vector<sf::RectangleShape> grid;
+  std::vector<sf::Vector2f> grid;
 
   sf::Clock deltaClock;
   sf::Time deltaTime;
@@ -40,10 +38,46 @@ class App {
   sf::Font genericFont;
   sf::Text fpsText;
 
+  void setupSFML() {
+    // Setup main window
+    window.create(sf::VideoMode(WIDTH, HEIGHT), "Fluid simulation", sf::Style::Close);
+    window.setFramerateLimit(75);
+    window.setActive(true);
+
+    if (!ImGui::SFML::Init(window))
+      throw std::runtime_error("ImGui initialize fail");
+
+    // Font for some test text
+    genericFont.loadFromFile("../../src/fonts/Minecraft rus.ttf");
+
+    // FPS text setup
+    fpsText.setString("75");
+    fpsText.setFont(genericFont);
+    fpsText.setCharacterSize(20);
+    fpsText.setOutlineColor(sf::Color(31, 31, 31));
+    fpsText.setOutlineThickness(3.f);
+    fpsText.setPosition({ WIDTH - fpsText.getLocalBounds().width, 0 });
+
+    initOpenGL();
+  }
+
+  void setupProgram() {
+    fluid.setup(dt, diffusion, viscocity);
+    grid.resize(ROWS * COLUMNS);
+    grid.reserve(ROWS * COLUMNS);
+
+    for (int j = 0; j < ROWS; j++)
+      for (int i = 0; i < COLUMNS; i++)
+        grid[i + j * COLUMNS] = { (float)j * SCALE, (float)i * SCALE };
+  }
+
   void initOpenGL() {
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
+    glViewport(0, 0, WIDTH, HEIGHT);
+    glLoadIdentity();
+    glOrtho(0.f, WIDTH, 0.f, HEIGHT, 0.f, 1.f);
   }
 
   void drawImGui() {
@@ -78,22 +112,17 @@ class App {
 
   void drawDensity() {
 		fluid.step();
-    glLoadIdentity();
+    glBegin(GL_QUADS);
 
-    for (int i = 0; i < N; i++) {
-      for (int j = 0; j < N; j++) {
-        /* sf::RectangleShape& rect = grid[i + j * N]; */
+    for (int j = 0; j < ROWS; j++) {
+      for (int i = 0; i < COLUMNS; i++) {
         const float density = fluid.getDensity(i, j);
-        const float posX = Normalize(i * SCALE, 0.f, (N - 1.f) * SCALE, -1.f, 1.f - normalizedSize);
-        const float posY = Normalize(j * SCALE, 0.f, (N - 1.f) * SCALE, -1.f + normalizedSize, 1.f);
+        const sf::Vector2f& pos = grid[i + j * COLUMNS];
         GLfloat colors[4];
 
         switch (fluid.getColorMode()) {
           // Black and White color mode
           case 0: {
-            /* const sf::Uint8 alpha = density > 255 ? (sf::Uint8)255 : (sf::Uint8)density; */
-            /* rect.setFillColor(sf::Color(255, 255, 255, alpha)); */
-
             colors[0] = 1.f;
             colors[1] = 1.f;
             colors[2] = 1.f;
@@ -102,7 +131,6 @@ class App {
           }
           // HSV color mode
           case 1: {
-            /* rect.setFillColor(HSV((int)density, 1.f, 1.f, 255.f)); */
             sf::Color hsv = HSV(density, 1.f, 1.f, 1.f);
             colors[0] = Normalize(hsv.r, 0.f, 255.f, 0.f, 1.f);
             colors[1] = Normalize(hsv.g, 0.f, 255.f, 0.f, 1.f);
@@ -112,9 +140,6 @@ class App {
           }
           // HSV velocity color mode
           case 2: {
-            /* const unsigned int r = (int)Normalize(fluid.getVelX(i, j), -0.05f, 0.05f, 0, 255); */
-            /* const unsigned int g = (int)Normalize(fluid.getVelY(i, j), -0.05f, 0.05f, 0, 255); */
-            /* rect.setFillColor(sf::Color(r, g, 255)); */
             colors[0] = Normalize(fluid.getVelX(i, j), -0.05f, 0.05f, 0.f, 1.f);
             colors[1] = Normalize(fluid.getVelY(i, j), -0.05f, 0.05f, 0.f, 1.f);
             colors[2] = 1.f;
@@ -125,17 +150,14 @@ class App {
             break;
         };
 
-        /* window.draw(rect); */
-        glBegin(GL_QUADS);
         glColor4f(colors[0], colors[1], colors[2], colors[3]);
-        glVertex2f(posX, posY);
-        glVertex2f(posX + normalizedSize, posY);
-        glVertex2f(posX + normalizedSize, posY - normalizedSize);
-        glVertex2f(posX, posY - normalizedSize);
-        glEnd();
+        glVertex2f(pos.x, pos.y);
+        glVertex2f(pos.x + SCALE, pos.y);
+        glVertex2f(pos.x + SCALE, pos.y + SCALE);
+        glVertex2f(pos.x, pos.y + SCALE);
       }
     }
-
+    glEnd();
     glFlush();
 		fluid.fadeDensity();
   }
@@ -187,42 +209,8 @@ class App {
     }
 
     void setup() {
-      // Setup main window
-      window.create(sf::VideoMode(N * SCALE, N * SCALE), "Fluid simulation", sf::Style::Close);
-      window.setFramerateLimit(75);
-      window.setActive(true);
-
-      if (!ImGui::SFML::Init(window))
-        throw std::runtime_error("ImGui initialize fail");
-
-      initOpenGL();
-
-      // Font for some test text
-      genericFont.loadFromFile("../../src/fonts/Minecraft rus.ttf");
-
-      // FPS text setup
-      fpsText.setString("75");
-      fpsText.setFont(genericFont);
-      fpsText.setCharacterSize(20);
-      fpsText.setOutlineColor(sf::Color(31, 31, 31));
-      fpsText.setOutlineThickness(3.f);
-      fpsText.setPosition({ N * SCALE - fpsText.getLocalBounds().width, 0 });
-
-      // Fill grid with drawable rects //
-      grid.resize(N * N);
-      grid.reserve(N * N);
-
-      fluid.setup(dt, diffusion, viscocity);
-
-      for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-          sf::RectangleShape rect;
-          rect.setSize(sf::Vector2f(SCALE, SCALE));
-          rect.setPosition(i * SCALE, j * SCALE);
-          grid[i + j * N] = rect;
-        }
-      }
-      //===============================//
+      setupSFML();
+      setupProgram();
     }
 
     void run() {
@@ -242,8 +230,8 @@ class App {
             fluid.changeColorMode();
 
           if (event.type == sf::Event::MouseMoved) {
-            MouseX = sf::Mouse::getPosition(window).x;
-            MouseY = N * SCALE - sf::Mouse::getPosition(window).y;
+            MouseX = HEIGHT - sf::Mouse::getPosition(window).y;
+            MouseY = sf::Mouse::getPosition(window).x;
           }
 
           // add density and velocity when mouse pressed
@@ -273,7 +261,6 @@ class App {
 
         deltaTime = deltaClock.restart();
 
-        /* window.clear(); */
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         drawImGui();
