@@ -1,4 +1,3 @@
-#include "SFML/OpenGL.hpp"
 #include "SFML/Graphics.hpp"
 #include "SFML/Window.hpp"
 #include "SFML/System.hpp"
@@ -30,7 +29,7 @@ class App {
   bool doOnce = true;
 
   Fluid fluid;
-  std::vector<sf::Vector2f> grid;
+  std::vector<sf::RectangleShape> grid;
 
   sf::Clock deltaClock;
   sf::Time deltaTime;
@@ -57,8 +56,6 @@ class App {
     fpsText.setOutlineColor(sf::Color(31, 31, 31));
     fpsText.setOutlineThickness(3.f);
     fpsText.setPosition({ WIDTH - fpsText.getLocalBounds().width, 0 });
-
-    initOpenGL();
   }
 
   void setupProgram() {
@@ -67,17 +64,11 @@ class App {
     grid.reserve(ROWS * COLUMNS);
 
     for (int j = 0; j < ROWS; j++)
-      for (int i = 0; i < COLUMNS; i++)
-        grid[i + j * COLUMNS] = { (float)j * SCALE, (float)i * SCALE };
-  }
-
-  void initOpenGL() {
-    glClearColor(0.f, 0.f, 0.f, 1.f);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
-    glViewport(0, 0, WIDTH, HEIGHT);
-    glLoadIdentity();
-    glOrtho(0.f, WIDTH, 0.f, HEIGHT, 0.f, 1.f);
+      for (int i = 0; i < COLUMNS; i++) {
+        sf::RectangleShape rect({ SCALE, SCALE });
+        rect.setPosition({ (float)j * SCALE, (float)i * SCALE });
+        grid[i + j * COLUMNS] = rect;
+      }
   }
 
   void drawImGui() {
@@ -112,59 +103,43 @@ class App {
 
   void drawDensity() {
 		fluid.step();
-    glBegin(GL_QUADS);
 
     for (int j = 0; j < ROWS; j++) {
       for (int i = 0; i < COLUMNS; i++) {
         const float density = fluid.getDensity(i, j);
-        const sf::Vector2f& pos = grid[i + j * COLUMNS];
-        GLfloat colors[4];
+        sf::RectangleShape& rect = grid[i + j * COLUMNS];
 
         switch (fluid.getColorMode()) {
           // Black and White color mode
           case 0: {
-            colors[0] = 1.f;
-            colors[1] = 1.f;
-            colors[2] = 1.f;
-            colors[3] = density / 100.f;
+            rect.setFillColor(sf::Color(255, 255, 255, density > 255 ? 255 : (int)density));
             break;
           }
           // HSV color mode
           case 1: {
-            sf::Color hsv = HSV(density, 1.f, 1.f, 1.f);
-            colors[0] = Normalize(hsv.r, 0.f, 255.f, 0.f, 1.f);
-            colors[1] = Normalize(hsv.g, 0.f, 255.f, 0.f, 1.f);
-            colors[2] = Normalize(hsv.b, 0.f, 255.f, 0.f, 1.f);
-            colors[3] = hsv.a;
+            rect.setFillColor(HSV((int)density, 1.f, 1.f, 255.f));
             break;
           }
           // HSV velocity color mode
           case 2: {
-            colors[0] = Normalize(fluid.getVelX(i, j), -0.05f, 0.05f, 0.f, 1.f);
-            colors[1] = Normalize(fluid.getVelY(i, j), -0.05f, 0.05f, 0.f, 1.f);
-            colors[2] = 1.f;
-            colors[3] = 1.f;
+            const unsigned int r = (int)Normalize(fluid.getVelX(i, j), -0.05f, 0.05f, 0, 255);
+            const unsigned int g = (int)Normalize(fluid.getVelY(i, j), -0.05f, 0.05f, 0, 255);
+            rect.setFillColor(sf::Color(r, g, 255));
             break;
           }
           default:
             break;
         };
 
-        glColor4f(colors[0], colors[1], colors[2], colors[3]);
-        glVertex2f(pos.x, pos.y);
-        glVertex2f(pos.x + SCALE, pos.y);
-        glVertex2f(pos.x + SCALE, pos.y + SCALE);
-        glVertex2f(pos.x, pos.y + SCALE);
+        window.draw(rect);
       }
     }
-    glEnd();
-    glFlush();
 		fluid.fadeDensity();
   }
 
   void drawOther() {
     fpsText.setString(std::to_string((int)(1.f / deltaTime.asSeconds())));
-    /* window.draw(fpsText); */
+    window.draw(fpsText);
   }
 
   const sf::Color HSV(int hue, float sat, float val, const float d) {
@@ -230,7 +205,7 @@ class App {
             fluid.changeColorMode();
 
           if (event.type == sf::Event::MouseMoved) {
-            MouseX = HEIGHT - sf::Mouse::getPosition(window).y;
+            MouseX = sf::Mouse::getPosition(window).y;
             MouseY = sf::Mouse::getPosition(window).x;
           }
 
@@ -261,7 +236,7 @@ class App {
 
         deltaTime = deltaClock.restart();
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        window.clear();
 
         drawImGui();
         drawDensity();
