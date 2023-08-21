@@ -29,13 +29,50 @@ class App {
   bool doOnce = true;
 
   Fluid fluid;
-  std::vector<sf::RectangleShape> grid;
 
+  sf::RenderWindow window;
   sf::Clock deltaClock;
   sf::Time deltaTime;
-  sf::RenderWindow window;
   sf::Font genericFont;
   sf::Text fpsText;
+
+  sf::Texture texture;
+  sf::Sprite background;
+  sf::Uint8* pixels = new sf::Uint8[PIXELS];
+
+  static const sf::Color HSV(int hue, float sat, float val, const float d) {
+    hue %= 360;
+    while (hue < 0) hue += 360;
+
+    if (sat < 0.f) sat = 0.f;
+    else if (sat > 1.f) sat = 1.f;
+
+    if (val < 0.f) val = 0.f;
+    else if (val > 1.f) val = 1.f;
+
+    const int h = hue / 60;
+    float f = float(hue) / 60 - h;
+    float p = val * (1.f - sat);
+    float q = val * (1.f - sat * f);
+    float t = val * (1.f - sat * (1 - f));
+
+    switch (h) {
+      default:
+      case 6: return sf::Color(val * 255, t * 255, p * 255, d);
+      case 1: return sf::Color(q * 255, val * 255, p * 255, d);
+      case 2: return sf::Color(p * 255, val * 255, t * 255, d);
+      case 3: return sf::Color(p * 255, q * 255, val * 255, d);
+      case 4: return sf::Color(t * 255, p * 255, val * 255, d);
+      case 5: return sf::Color(val * 255, p * 255, q * 255, d);
+    }
+  }
+
+  static const float Normalize(float val, float minIn, float maxIn, float minOut, float maxOut) {
+    float x = (val - minIn) / (maxIn - minIn);
+    float result = minOut + (maxOut - minOut) * x;
+
+    return (result < minOut) ? minOut : (result > maxOut) ? maxOut : result;
+  }
 
   void setupSFML() {
     // Setup main window
@@ -56,19 +93,23 @@ class App {
     fpsText.setOutlineColor(sf::Color(31, 31, 31));
     fpsText.setOutlineThickness(3.f);
     fpsText.setPosition({ WIDTH - fpsText.getLocalBounds().width, 0 });
+
+    for (int i = 0; i < PIXELS; i += 4) {
+      pixels[i + 0] = 255; // Red 
+      pixels[i + 1] = 255; // Green
+      pixels[i + 2] = 255; // Blue
+      pixels[i + 3] = 0;   // Alpha
+    }
+
+    texture.create(COLUMNS, ROWS);
+    texture.update(pixels);
+
+    background.setScale(SCALE, SCALE);
+    background.setTexture(texture);
   }
 
   void setupProgram() {
     fluid.setup(dt, diffusion, viscocity);
-    grid.resize(ROWS * COLUMNS);
-    grid.reserve(ROWS * COLUMNS);
-
-    for (int j = 0; j < ROWS; j++)
-      for (int i = 0; i < COLUMNS; i++) {
-        sf::RectangleShape rect({ SCALE, SCALE });
-        rect.setPosition({ (float)j * SCALE, (float)i * SCALE });
-        grid[i + j * COLUMNS] = rect;
-      }
   }
 
   void drawImGui() {
@@ -104,37 +145,46 @@ class App {
   void drawDensity() {
 		fluid.step();
 
-    for (int j = 0; j < ROWS; j++) {
-      for (int i = 0; i < COLUMNS; i++) {
-        const float density = fluid.getDensity(i, j);
-        sf::RectangleShape& rect = grid[i + j * COLUMNS];
+    for (int j = 0; j < COLUMNS; j++) {
+      for (int i = 0; i < ROWS; i++) {
+        int index = IX(j, i);
+        int pixelIndex = index * 4;
+        float density = fluid.getDensity(index);
 
         switch (fluid.getColorMode()) {
           // Black and White color mode
           case 0: {
-            rect.setFillColor(sf::Color(255, 255, 255, density > 255 ? 255 : (int)density));
+            pixels[pixelIndex + 0] = 255;
+            pixels[pixelIndex + 1] = 255;
+            pixels[pixelIndex + 2] = 255;
+            pixels[pixelIndex + 3] = density > 255 ? 255 : (sf::Uint8)density;
             break;
           }
           // HSV color mode
           case 1: {
-            rect.setFillColor(HSV((int)density, 1.f, 1.f, 255.f));
+            sf::Color color = HSV(density, 1.f, 1.f, 255.f);
+            pixels[pixelIndex + 0] = color.r;
+            pixels[pixelIndex + 1] = color.g;
+            pixels[pixelIndex + 2] = color.b;
+            pixels[pixelIndex + 3] = color.a;
             break;
           }
           // HSV velocity color mode
           case 2: {
-            const unsigned int r = (int)Normalize(fluid.getVelX(i, j), -0.05f, 0.05f, 0, 255);
-            const unsigned int g = (int)Normalize(fluid.getVelY(i, j), -0.05f, 0.05f, 0, 255);
-            rect.setFillColor(sf::Color(r, g, 255));
+            pixels[pixelIndex + 0] = (sf::Uint8)Normalize(fluid.getVelX(index), -0.05f, 0.05f, 0, 255);
+            pixels[pixelIndex + 1] = (sf::Uint8)Normalize(fluid.getVelY(index), -0.05f, 0.05f, 0, 255);
+            pixels[pixelIndex + 2] = 255;
             break;
           }
           default:
             break;
         };
-
-        window.draw(rect);
       }
     }
-		fluid.fadeDensity();
+    fluid.fadeDensity();
+
+    texture.update(pixels);
+    window.draw(background);
   }
 
   void drawOther() {
@@ -142,44 +192,11 @@ class App {
     window.draw(fpsText);
   }
 
-  const sf::Color HSV(int hue, float sat, float val, const float d) {
-    hue %= 360;
-    while (hue < 0) hue += 360;
-
-    if (sat < 0.f) sat = 0.f;
-    else if (sat > 1.f) sat = 1.f;
-
-    if (val < 0.f) val = 0.f;
-    else if (val > 1.f) val = 1.f;
-
-    const int h = hue / 60;
-    float f = float(hue) / 60 - h;
-    float p = val * (1.f - sat);
-    float q = val * (1.f - sat * f);
-    float t = val * (1.f - sat * (1 - f));
-
-    switch (h) {
-      default:
-      case 6: return sf::Color(val * 255, t * 255, p * 255, d);
-      case 1: return sf::Color(q * 255, val * 255, p * 255, d);
-      case 2: return sf::Color(p * 255, val * 255, t * 255, d);
-      case 3: return sf::Color(p * 255, q * 255, val * 255, d);
-      case 4: return sf::Color(t * 255, p * 255, val * 255, d);
-      case 5: return sf::Color(val * 255, p * 255, q * 255, d);
-    }
-  }
-
-  const float Normalize(const float val, const float minIn, const float maxIn, const float minOut, const float maxOut) {
-    const float x = (val - minIn) / (maxIn - minIn);
-    const float result = minOut + (maxOut - minOut) * x;
-
-    return (result < minOut) ? minOut : (result > maxOut) ? maxOut : result;
-  }
-
   public:
     App() {}
 
     ~App() {
+      delete[] pixels;
       ImGui::SFML::Shutdown();
     }
 
@@ -204,34 +221,32 @@ class App {
           if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Key::C)
             fluid.changeColorMode();
 
+            // add density and velocity when mouse pressed
           if (event.type == sf::Event::MouseMoved) {
-            MouseX = sf::Mouse::getPosition(window).y;
-            MouseY = sf::Mouse::getPosition(window).x;
-          }
+            MouseX = sf::Mouse::getPosition(window).x / SCALE;
+            MouseY = sf::Mouse::getPosition(window).y / SCALE;
 
-          // add density and velocity when mouse pressed
-          if (event.type == sf::Event::MouseMoved && sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-            if (!ImGui::IsAnyItemHovered() &&
-                !ImGui::IsWindowHovered(ImGuiFocusedFlags_AnyWindow) &&
-                !ImGui::IsAnyItemActive()) {
-              const int x = MouseX / SCALE;
-              const int y = MouseY / SCALE;
+            MouseX = MouseX < 0 ? 0 : MouseX;
+            MouseX = MouseX > COLUMNS - 1 ? COLUMNS - 1 : MouseX;
 
-              const int x0 = MouseX0 / SCALE;
-              const int y0 = MouseY0 / SCALE;
+            MouseY = MouseY < 0 ? 0 : MouseY;
+            MouseY = MouseY > ROWS - 1 ? ROWS - 1 : MouseY;
 
-              const float velX = (float)x - x0;
-              const float velY = (float)y - y0;
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+              if (!ImGui::IsAnyItemHovered() &&
+                  !ImGui::IsWindowHovered(ImGuiFocusedFlags_AnyWindow) &&
+                  !ImGui::IsAnyItemActive()) {
 
-              for (int i = -densityLine; i <= densityLine; i++) {
-                fluid.addDensity(x + i, y, densityValue);
-                fluid.addVelocity(x + i, y, velX, velY);
+                for (int i = -densityLine; i <= densityLine && MouseX + i < COLUMNS; i++) {
+                  fluid.addDensity(std::abs(MouseX + i), MouseY, densityValue);
+                  fluid.addVelocity(std::abs(MouseX + i), MouseY, MouseX - MouseX0, MouseY - MouseY0);
+                }
               }
             }
-          }
 
-          MouseX0 = MouseX;
-          MouseY0 = MouseY;
+            MouseX0 = MouseX;
+            MouseY0 = MouseY;
+          }
         }
 
         deltaTime = deltaClock.restart();
